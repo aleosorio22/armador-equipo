@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clase 4 · Ejercicio: armador de equipo (Bootstrap 5 + jQuery + AJAX)</title>
+
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet">
+
+  <style>
+    /* Lo mínimo de CSS propio: el resto del layout lo resuelve Bootstrap. */
+    :root {
+      --color-marca: #2f855a;
+    }
+    .navbar-brand { font-weight: 600; }
+    #catalogo-cargando { display: none; }
+    #catalogo-error { display: none; }
+    #equipo-vacio { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- ===================== NAVBAR (ya resuelta, no es parte de los TODO) ===================== -->
+  <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4">
+    <div class="container">
+      <a class="navbar-brand" href="#">🛸 Armador de equipo</a>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarContenido"
+        aria-controls="navbarContenido"
+        aria-expanded="false"
+        aria-label="Mostrar/ocultar navegación">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarContenido">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="#catalogo">Catálogo</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#mi-equipo-section">Mi equipo</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <header class="mb-4">
+      <h1 class="h3">Armá tu equipo de personajes</h1>
+      <p class="text-muted">
+        Los datos vienen de la <a href="https://rickandmortyapi.com/" target="_blank" rel="noopener">Rick and Morty API</a>
+        (pública, sin API key). El catálogo de abajo ya funciona — es tu ejemplo
+        de referencia. Las partes marcadas con <code>TODO</code> en el
+        <code>&lt;script&gt;</code> son las que tenés que completar en clase.
+      </p>
+    </header>
+
+    <!-- ===================== SECCIÓN 1: CATÁLOGO (resuelta) ===================== -->
+    <section id="catalogo" class="mb-5">
+      <h2 class="h5">1. Catálogo</h2>
+      <p class="small text-muted">
+        Se carga una sola vez con <code>$.ajax</code> al abrir la página.
+        Marcá los personajes que quieras y presioná "Agregar al equipo".
+      </p>
+
+      <div id="catalogo-cargando" class="d-flex align-items-center gap-2 text-muted mb-3">
+        <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
+        <span>Cargando catálogo…</span>
+      </div>
+
+      <div id="catalogo-error" class="alert alert-danger" role="alert">
+        No se pudo cargar el catálogo. Recargá la página.
+      </div>
+
+      <div id="catalogo-lista" class="row g-2 mb-3">
+        <!-- Cada personaje se agrega aquí dinámicamente desde cargarCatalogo() -->
+      </div>
+
+      <button id="btn-agregar" type="button" class="btn btn-success">
+        Agregar al equipo
+      </button>
+      <span id="catalogo-aviso" class="ms-2 small text-muted"></span>
+    </section>
+
+    <!-- ===================== SECCIÓN 2: MI EQUIPO (página principal — acá renderiza el TODO 1) ===================== -->
+    <section id="mi-equipo-section">
+      <h2 class="h5">2. Mi equipo</h2>
+
+      <p id="equipo-vacio" class="text-muted">
+        Todavía no agregaste a nadie. Elegí personajes en el catálogo de arriba.
+      </p>
+
+      <div id="mi-equipo" class="row row-cols-1 row-cols-md-3 g-4">
+        <!-- TODO 1: acá van las cards de Bootstrap que armes con jQuery -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===================== MODAL DE DETALLE (estructura lista, contenido lo llena el TODO 2) ===================== -->
+  <div class="modal fade" id="modalDetalle" tabindex="-1" aria-labelledby="modalDetalleTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalDetalleTitulo">Nombre del personaje</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-4">
+              <img id="modalDetalle-imagen" src="" alt="" class="img-fluid rounded">
+            </div>
+            <div class="col-8">
+              <p class="mb-1"><strong>Estado:</strong> <span id="modalDetalle-estado"></span></p>
+              <p class="mb-1"><strong>Especie:</strong> <span id="modalDetalle-especie"></span></p>
+              <p class="mb-1"><strong>Origen:</strong> <span id="modalDetalle-origen"></span></p>
+              <p class="mb-1"><strong>Última ubicación:</strong> <span id="modalDetalle-ubicacion"></span></p>
+              <!-- TODO 4 (bonus): agregar aquí el tipo de planeta/dimensión de origen -->
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ==================================================================
+    // Guardamos cada personaje que llega de la API en este objeto, usando
+    // su id como clave. Así el TODO 1 y el TODO 2 no tienen que volver a
+    // pedirle nada a la API: los datos ya están en memoria.
+    // ==================================================================
+    const catalogoPorId = {};
+
+    // ids que ya están en "Mi equipo" — lo vas a usar en el TODO 3 (bonus)
+    // para no dejar agregar dos veces al mismo personaje.
+    const equipoActual = new Set();
+
+    // ----------------------------------x|--------------------------------
+    // RESUELTO — Carga el catálogo una sola vez al abrir la página.
+    // Fíjate el patrón: mostrar spinner -> pedir con $.ajax -> ocultar
+    // spinner -> pintar resultado o mostrar error. Es el mismo patrón
+    // que vas a repetir en los TODO.
+    // ------------------------------------------------------------------
+    function cargarCatalogo() {
+      $('#catalogo-cargando').show();
+      $('#catalogo-error').hide();
+
+      $.ajax({
+        url: 'https://rickandmortyapi.com/api/character',
+        method: 'GET',
+        dataType: 'json'
+      })
+        .done((respuesta) => {
+          respuesta.results.forEach(agregarAlCatalogo);
+        })
+        .fail(() => {
+          $('#catalogo-error').show();
+        })
+        .always(() => {
+          $('#catalogo-cargando').hide();
+        });
+    }
+
+    // RESUELTO — pinta un personaje del catálogo como checkbox + miniatura.
+    function agregarAlCatalogo(personaje) {
+      catalogoPorId[personaje.id] = personaje;
+
+      const $item = $(`
+        <div class="col-6 col-md-4 col-lg-3">
+          <label class="form-check d-flex align-items-center gap-2 border rounded p-2 h-100 mb-0">
+            <input class="form-check-input mt-0" type="checkbox" value="${personaje.id}">
+            <img src="${personaje.image}" alt="" width="40" height="40" class="rounded-circle">
+            <span class="form-check-label small">${personaje.name}</span>
+          </label>
+        </div>
+      `);
+
+      $('#catalogo-lista').append($item);
+    }
+
+    cargarCatalogo();
+
+    // ==================================================================
+    // TODO 1 (obligatorio) — Al presionar "Agregar al equipo":
+    //
+    //   1. Buscar los checkboxes marcados dentro de #catalogo-lista
+    //      (pista: $('#catalogo-lista input:checked')).
+    //   2. Por cada checkbox marcado, usar su .value como id y buscar el
+    //      personaje completo en catalogoPorId[id].
+    //   3. Armar el HTML de una card de Bootstrap (col + .card, con
+    //      card-img-top = personaje.image, card-title = nombre,
+    //      card-text = estado/especie) y agregarla dentro de #mi-equipo.
+    //   4. Ocultar #equipo-vacio en cuanto se agregue el primer personaje.
+    //
+    // La card que agregues debe incluir un botón con la clase
+    // "btn-ver-detalle" y el atributo data-id="<id del personaje>" —
+    // ese botón es el que vas a usar en el TODO 2 para abrir el modal.
+    // ==================================================================
+    //validar duplicados
+
+    $('#btn-agregar').on('click', function () {
+      if ($('#catalogo-lista input:checked').length === 0) {
+        $('#catalogo-aviso').text('No seleccionaste ningún personaje.');
+        return;
+      }
+      $('#equipo-vacio').hide();
+      const personajesSeleccionados = $('#catalogo-lista input:checked');
+      personajesSeleccionados.each(function () {
+        if (equipoActual.has($(this).val())) {
+          $('#catalogo-aviso').text('Hay un personaje duplicado en tu equipo. No se puede agregar.');
+          return;
+        }
+        equipoActual.add($(this).val());
+        
+        const id = $(this).val();
+        const personaje = catalogoPorId[id];
+        
+        const $card = $(`
+          <div class="col">
+            <div class="card h-100">
+              <img src="${personaje.image}" class="card-img-top" alt="${personaje.name}">
+              <div class="card-body">
+                <h5 class="card-title">${personaje.name}</h5>
+                <p class="card-text">${personaje.status} / ${personaje.species}</p>
+                <button class="btn btn-primary btn-ver-detalle" data-id="${personaje.id}">Ver detalle</button>
+              </div>
+            </div>
+          </div>
+        `);
+        $('#mi-equipo').append($card);
+      });
+    });
+
+
+    // ==================================================================
+    // TODO 2 (obligatorio) — Abrir el modal de detalle.
+    //
+    // Las cards de #mi-equipo se crean dinámicamente (no existen todavía
+    // cuando la página carga), así que hay que "delegar" el evento sobre
+    // un contenedor que sí exista desde el principio:
+    //
+    //   $('#mi-equipo').on('click', '.btn-ver-detalle', function () { ... });
+    //
+    // Dentro del handler:
+    //   1. Leer el id con $(this).data('id').
+    //   2. Buscar el personaje en catalogoPorId[id].
+    //   3. Llenar #modalDetalleTitulo, #modalDetalle-imagen (src y alt),
+    //      #modalDetalle-estado, #modalDetalle-especie, #modalDetalle-origen
+    //      (personaje.origin.name) y #modalDetalle-ubicacion (personaje.location.name).
+    //   4. Mostrar el modal.
+    //
+    // ⚠️ Ojo con esto: Bootstrap 5 ya NO depende de jQuery para sus
+    // componentes. $('#modalDetalle').modal('show') (la sintaxis de
+    // Bootstrap 4) no va a funcionar. Hay que usar la API nativa de
+    // Bootstrap 5:
+    //
+    //   new bootstrap.Modal(document.getElementById('modalDetalle')).show();
+    // ==================================================================
+    $('#mi-equipo').on('click', '.btn-ver-detalle', function () {
+      const id = $(this).data('id');
+      const personaje = catalogoPorId[id];
+
+      $('#modalDetalleTitulo').text(personaje.name);
+      $('#modalDetalle-imagen').attr('src', personaje.image).attr('alt', personaje.name);
+      $('#modalDetalle-estado').text(personaje.status);
+      $('#modalDetalle-especie').text(personaje.species);
+      $('#modalDetalle-origen').text(personaje.origin.name);
+      $('#modalDetalle-ubicacion').text(personaje.location.name);
+
+      const Urldelorigen = personaje.origin.url;
+              if(Urldelorigen){
+                $('#modalDetalle-origen').text(personaje.origin.name + ' (cargando tipo/dimensión...)');
+                $.ajax({
+                  url: Urldelorigen,
+                  method: 'GET',
+                  dataType: 'json'
+                })
+                .done((respuesta) => {
+                  const tipoDimension = respuesta.type || respuesta.dimension || 'desconocido';
+                  $('#modalDetalle-origen').text(personaje.origin.name + ' (' + tipoDimension + ')');
+                })
+                .fail(() => {
+                  $('#modalDetalle-origen').text(personaje.origin.name + ' (error al cargar tipo/dimensión)');
+                });
+              }
+      new bootstrap.Modal(document.getElementById('modalDetalle')).show();
+    });
+   
+
+    // ==================================================================
+    // TODO 3 (casa) — No permitir duplicados.
+    //
+    // Usando el Set "equipoActual" declarado arriba: antes de agregar un
+    // personaje en el TODO 1, si su id ya está en equipoActual, saltarlo
+    // y avisar en #catalogo-aviso (por ejemplo: "Ese personaje ya está en
+    // tu equipo"). Si lo agregás, sumá su id al Set.
+    //
+    // Agregá también un botón "Quitar" en cada card (delegado igual que
+    // en el TODO 2) que la elimine del DOM y del Set, y vuelva a mostrar
+    // #equipo-vacio si el equipo queda en cero personajes.
+    // ==================================================================
+
+
+    // ==================================================================
+    // TODO 4 (bonus avanzado) — AJAX encadenado.
+    //
+    // personaje.origin.url (si no está vacío) es la URL completa a otro
+    // endpoint de la misma API con el detalle del planeta de origen. En
+    // el handler del TODO 2, antes de mostrar el modal, hacé un segundo
+    // $.ajax a esa URL y agregá el campo "type" o "dimension" de la
+    // respuesta en el modal. Esto practica encadenar dos llamadas AJAX
+    // (la segunda depende del resultado de la primera).
+    // ==================================================================
+  </script>
+
+  <!--
+    Puntos para discutir en clase al cerrar el ejercicio:
+    - El catálogo se pidió UNA vez y quedó en memoria (catalogoPorId);
+      no hace falta volver a pedirle nada a la API para renderizar cards
+      ni para llenar el modal — esa es la ventaja de guardar los datos.
+    - El TODO 2 es la trampa típica: Bootstrap 5 rompió compatibilidad
+      con el plugin jQuery de modales que existía en Bootstrap 4.
+    - El TODO 3 muestra por qué a veces conviene guardar un id en un Set
+      además de tenerlo en el DOM: es más simple preguntar
+      "equipoActual.has(id)" que recorrer el DOM buscando duplicados.
+  -->
+</body>
+</html>
